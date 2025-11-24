@@ -24,7 +24,7 @@ def main():
         new_docs = json.load(f)
 
     # 모델 로드
-    model = SentenceTransformer(MODEL_NAME)
+    model = SentenceTransformer(MODEL_NAME, device="cpu", model_kwargs={"low_cpu_mem_usage": False})
 
     # 기존 인덱스 및 메타데이터 로드
     if os.path.exists(INDEX_PATH) and os.path.exists(META_PATH):

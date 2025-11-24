@@ -15,7 +15,9 @@ def _lazy_load():
     global _emb_model, _index, _docs
 
     if _emb_model is None:
-        _emb_model = SentenceTransformer(EMB_MODEL)
+        # device="cpu"를 명시하여 meta tensor 오류 방지
+        # model_kwargs={"low_cpu_mem_usage": False} 추가: meta tensor 오류 방지
+        _emb_model = SentenceTransformer(EMB_MODEL, device="cpu", model_kwargs={"low_cpu_mem_usage": False})
         print("🧠 임베딩 모델 로드 완료")
 
     if _index is None:

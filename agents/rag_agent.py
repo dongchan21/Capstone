@@ -1,7 +1,7 @@
 from services.vector_service import search_similar_docs
 from services.llm_service import generate_answer
 
-def answer_question(question):
+def answer_question(question, user_profile=None):
     # 1️⃣ Vector DB에서 관련 문서 검색
     docs = search_similar_docs(question, top_k=3)
     if not docs:
@@ -9,7 +9,7 @@ def answer_question(question):
 
     # 2️⃣ 문맥 기반 답변 생성
     context = "\n".join([d["content"] for d in docs])
-    answer = generate_answer(question, context)
+    answer = generate_answer(question, context, user_profile)
     
     return {
         "answer": answer,

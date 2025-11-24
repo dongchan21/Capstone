@@ -7,6 +7,7 @@ from watchdog.events import FileSystemEventHandler
 # 📁 감시 대상 폴더
 EXCEL_DIR = "data/raw_excels"
 CSV_DIR = "data/raw_csv"
+TXT_DIR = "data/raw_txt"
 
 # 🗂 로그 및 임시 경로
 LOG_PATH = "logs/update_log.txt"
@@ -31,6 +32,9 @@ def run_pipeline(file_path, file_type="excel"):
     elif file_type == "csv":
         log("📄 CSV → JSON 변환 중 ...")
         os.system(f"python scripts/convert_csv_to_json.py \"{file_path}\"")
+    elif file_type == "txt":
+        log("📄 TXT → JSON 변환 중 ...")
+        os.system(f"python scripts/convert_txt_to_json.py \"{file_path}\"")
 
     # 2️⃣ 인덱스 재생성
     log("🧠 벡터 인덱스 재생성 중 ...")
@@ -56,6 +60,8 @@ class DataEventHandler(FileSystemEventHandler):
             run_pipeline(event.src_path, "excel")
         elif event.src_path.endswith(".csv"):
             run_pipeline(event.src_path, "csv")
+        elif event.src_path.endswith(".txt"):
+            run_pipeline(event.src_path, "txt")
 
     def on_created(self, event):
         if event.is_directory:
@@ -64,12 +70,15 @@ class DataEventHandler(FileSystemEventHandler):
             run_pipeline(event.src_path, "excel")
         elif event.src_path.endswith(".csv"):
             run_pipeline(event.src_path, "csv")
+        elif event.src_path.endswith(".txt"):
+            run_pipeline(event.src_path, "txt")
 
 if __name__ == "__main__":
     os.makedirs(EXCEL_DIR, exist_ok=True)
     os.makedirs(CSV_DIR, exist_ok=True)
+    os.makedirs(TXT_DIR, exist_ok=True)
 
-    log("👀 Excel & CSV 폴더 감시 시작 ... (Ctrl+C로 종료)")
+    log("👀 Excel & CSV & TXT 폴더 감시 시작 ... (Ctrl+C로 종료)")
 
     observer = Observer()
     handler = DataEventHandler()
@@ -77,6 +86,7 @@ if __name__ == "__main__":
     # 두 폴더 감시 등록
     observer.schedule(handler, path=EXCEL_DIR, recursive=False)
     observer.schedule(handler, path=CSV_DIR, recursive=False)
+    observer.schedule(handler, path=TXT_DIR, recursive=False)
     observer.start()
 
     try:

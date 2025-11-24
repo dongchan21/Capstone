@@ -11,6 +11,10 @@ if len(sys.argv) < 2:
 EXCEL_PATH = sys.argv[1]
 JSON_PATH = "data/deposit_docs.json"
 
+# ⚠️ 엑셀 임시파일(~$) 무시
+if os.path.basename(EXCEL_PATH).startswith("~$"):
+    print(f"⏭️ 임시파일 감지됨, 처리 생략: {EXCEL_PATH}")
+    sys.exit(0)
 
 # ============================================
 # 1️⃣ 엑셀 헤더 자동 감지
@@ -19,7 +23,6 @@ JSON_PATH = "data/deposit_docs.json"
 def read_excel_auto(path):
     """엑셀 헤더 유무 자동 감지 후 DataFrame으로 로드"""
     try:
-        # 첫 번째 행 읽어서 문자열 비율 판단
         preview = pd.read_excel(path, nrows=1, header=None)
         first_row = preview.iloc[0].tolist()
         str_ratio = sum(isinstance(x, str) for x in first_row) / len(first_row)
@@ -53,7 +56,25 @@ col_rate = detect_column(df.columns, ["금리", "이율", "수익률"])
 col_period = detect_column(df.columns, ["기간", "만기", "가입"])
 
 # ============================================
-# 3️⃣ 각 행(row)을 문장 형태로 변환
+# 3️⃣ 금리 숫자 변환 함수 (날짜 등 오인 방지)
+# ============================================
+
+def parse_rate(value):
+    if pd.isna(value):
+        return None
+    s = str(value).strip()
+    # 숫자 추출
+    match = re.search(r"\d+(\.\d+)?", s)
+    if not match:
+        return None
+    num = float(match.group())
+    # 날짜로 인식되는 숫자(100 이상 or 연도 형태) 제외
+    if num > 50 or "202" in s or "년" in s:
+        return None
+    return num
+
+# ============================================
+# 4️⃣ 각 행(row)을 문장 형태로 변환
 # ============================================
 
 records = []
@@ -61,11 +82,7 @@ for _, row in df.iterrows():
     text_parts = [f"{col}: {row[col]}" for col in df.columns]
     combined_text = " | ".join(text_parts)
 
-    # 금리 숫자 변환
-    rate_val = None
-    if col_rate and str(row[col_rate]).strip() != "":
-        match = re.search(r"[\d.]+", str(row[col_rate]))
-        rate_val = float(match.group()) if match else None
+    rate_val = parse_rate(row[col_rate]) if col_rate else None
 
     meta = {
         "bank": str(row[col_bank]) if col_bank else None,
@@ -81,7 +98,7 @@ for _, row in df.iterrows():
     })
 
 # ============================================
-# 4️⃣ 기존 JSON 병합 및 저장
+# 5️⃣ 기존 JSON 병합 및 저장
 # ============================================
 
 if os.path.exists(JSON_PATH):
